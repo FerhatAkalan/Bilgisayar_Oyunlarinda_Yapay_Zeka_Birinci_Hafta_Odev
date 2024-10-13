@@ -1,0 +1,74 @@
+#pragma kernel CopyIndexBuffer
+#pragma kernel CopyIndexBuffer16
+#pragma kernel CopyVertexBuffer
+
+#define GROUP_SIZE 128
+#define ITEMS_PER_THREAD 48
+
+int _InputIndexCount;
+int _InputBaseIndex;
+int _InputIndexBufferOffset;
+int _OutputIndexBufferOffset;
+
+ByteAddressBuffer _InputIndexBuffer;
+RWStructuredBuffer<uint> _OutputIndexBuffer;
+
+
+[numthreads(GROUP_SIZE,1,1)]
+void CopyIndexBuffer(uint gidx : SV_DispatchThreadID)
+{
+    for (int i = 0; i < ITEMS_PER_THREAD; ++i)
+    {
+        int offset = gidx * ITEMS_PER_THREAD + i;
+        if (offset >= _InputIndexCount)
+            return;
+
+        uint val = _InputIndexBuffer.Load((_InputIndexBufferOffset + offset) << 2);
+
+        _OutputIndexBuffer[(uint)_OutputIndexBufferOffset + offset] = val + _InputBaseIndex;
+    }
+}
+
+[numthreads(GROUP_SIZE, 1, 1)]
+void CopyIndexBuffer16(in uint gidx : SV_DispatchThreadID)
+{
+    for (int i = 0; i < ITEMS_PER_THREAD; ++i)
+    {
+        int offset = gidx * ITEMS_PER_THREAD + i;
+        if (offset >= _InputIndexCount)
+            return;
+
+        uint val = _InputIndexBuffer.Load(((_InputIndexBufferOffset + offset) / 2u) << 2);
+        val = (_InputIndexBufferOffset + offset) % 2u == 0 ? (val & 0x0000ffff) : (val >> 16);
+
+        _OutputIndexBuffer[(uint)_OutputIndexBufferOffset + offset] = val + _InputBaseIndex;
+    }
+}
+
+int _InputPosBufferCount;
+int _InputBaseVertex;
+int _InputPosBufferStride;
+int _InputPosBufferOffset;
+int _OutputPosBufferOffset;
+
+ByteAddressBuffer _InputPosBuffer;
+RWStructuredBuffer<uint> _OutputPosBuffer;
+
+[numthreads(GROUP_SIZE, 1, 1)]
+void CopyVertexBuffer(uint gidx : SV_DispatchThreadID)
+{
+    for (int i = 0; i < ITEMS_PER_THREAD; ++i)
+    {
+        int offset = gidx * ITEMS_PER_THREAD + i;
+        if (offset >= _InputPosBufferCount)
+            return;
+
+        uint inputAddr = _InputPosBufferOffset + (_InputBaseVertex + offset) * _InputPosBufferStride;
+        uint3 val = _InputPosBuffer.Load3(inputAddr << 2);
+
+        uint outputAddr = _OutputPosBufferOffset + 3 * offset;
+        _OutputPosBuffer[outputAddr] = val.x;
+        _OutputPosBuffer[outputAddr + 1] = val.y;
+        _OutputPosBuffer[outputAddr + 2] = val.z;
+    }
+}

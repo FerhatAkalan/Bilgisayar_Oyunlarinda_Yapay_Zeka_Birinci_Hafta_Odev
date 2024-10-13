@@ -1,0 +1,3 @@
+#define UNIFIED_RT_BACKEND_HARDWARE
+#include "TraceRays.hlsl"
+#include "Packages/com.unity.rendering.light-transport/Runtime/UnifiedRayTracing/Hardware/HardwareRaygenShader.hlsl"
